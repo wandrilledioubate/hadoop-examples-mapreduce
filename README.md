@@ -288,9 +288,6 @@
     wandrille.dioubate@bigdata01.efrei.hadoop.clemlab.io's password:
     ```
     ```bash
-    cd /home
-    ```
-    ```bash
     cd wandrille.dioubate/
     ```
     ```bash
@@ -394,3 +391,111 @@
         File Output Format Counters
             Bytes Written=29
     ```
+
+## 1.8 Remarkable trees of Paris
+
+- Use the scp command to transfer the trees.csv file from your local machine to the edge node.
+    ```bash 
+    scp /Users/wandrille/Desktop/hadoop-examples-mapreduce/src/test/resources/data/trees.csv wandrille.dioubate@bigdata01.efrei.hadoop.clemlab.io:/home/wandrille.dioubate/
+    wandrille.dioubate@bigdata01.efrei.hadoop.clemlab.io's password:
+    trees.csv                                                                               100%   16KB 468.0KB/s   00:00
+    ```
+
+- Download and upload the dataset to HDFS.
+    ```bash
+    hdfs dfs -mkdir -p /user/wandrille.dioubate/input
+    ```
+    ```bash
+    hdfs dfs -put /home/wandrille.dioubate/trees.csv /user/wandrille.dioubate/input/
+    ```
+
+### 1.8.1 Districts containing trees (very easy)
+- Code the main job
+    ```java 
+    package com.opstty.job;
+
+    import org.apache.hadoop.conf.Configuration;
+    import org.apache.hadoop.fs.Path;
+    import org.apache.hadoop.io.NullWritable;
+    import org.apache.hadoop.io.Text;
+    import org.apache.hadoop.mapreduce.Job;
+    import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+    import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+    import org.apache.hadoop.util.GenericOptionsParser;
+    import com.opstty.mapper.DistrictsContainingTreesMapper;
+    import com.opstty.reducer.DistrictsContainingTreesReducer;
+
+    public class DistrictsContainingTrees {
+        public static void main(String[] args) throws Exception {
+            Configuration conf = new Configuration();
+            String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+            if (otherArgs.length < 2) {
+                System.err.println("Usage: districtstrees <in> <out>");
+                System.exit(2);
+            }
+            Job job = Job.getInstance(conf, "districts containing trees");
+            job.setJarByClass(DistrictsContainingTrees.class);
+            job.setMapperClass(DistrictsContainingTreesMapper.class);
+            job.setCombinerClass(DistrictsContainingTreesReducer.class);
+            job.setReducerClass(DistrictsContainingTreesReducer.class);
+            job.setOutputKeyClass(Text.class);
+            job.setOutputValueClass(NullWritable.class);
+            FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
+            FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
+            System.exit(job.waitForCompletion(true) ? 0 : 1);
+        }
+    }
+    ```
+
+- Code the reducer 
+    ```java 
+    package com.opstty.reducer;
+
+    import org.apache.hadoop.io.NullWritable;
+    import org.apache.hadoop.io.Text;
+    import org.apache.hadoop.mapreduce.Reducer;
+
+    import java.io.IOException;
+
+    public class DistrictsContainingTreesReducer extends Reducer<Text, NullWritable, Text, NullWritable> {
+        public void reduce(Text key, Iterable<NullWritable> values, Context context) throws IOException, InterruptedException {
+            context.write(key, NullWritable.get());
+        }
+    }
+    ```
+
+- Code the mapper
+    ```java
+    package com.opstty.mapper;
+
+    import org.apache.hadoop.io.NullWritable;
+    import org.apache.hadoop.io.Text;
+    import org.apache.hadoop.mapreduce.Mapper;
+
+    import java.io.IOException;
+
+    public class DistrictsContainingTreesMapper extends Mapper<Object, Text, Text, NullWritable> {
+        private boolean isHeader = true;
+
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+            if (isHeader) {
+                isHeader = false;
+                return; // Skip the header row
+            }
+            String[] fields = value.toString().split(";");
+            String district = fields[1]; // Assuming the district is the second field
+            context.write(new Text(district), NullWritable.get());
+        }
+    }
+    ```
+
+- Launch the job 
+    ```bash 
+    hadoop jar /home/wandrille.dioubate/hadoop-examples-mapreduce-1.0-SNAPSHOT-jar-with-dependencies.jar com.opstty.job.DistrictsContainingTrees /user/wandrille.dioubate/input /user/wandrille.dioubate/output
+    ```
+
+- The result 
+    ```bash 
+    not yet
+    ```
+

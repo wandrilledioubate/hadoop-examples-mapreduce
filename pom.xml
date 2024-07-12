@@ -76,7 +76,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>com.opstty.AppDriver</mainClass>
+              <mainClass>com.opstty.job.DistrictsContainingTrees</mainClass>
             </manifest>
           </archive>
           <descriptorRefs>
